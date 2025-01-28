@@ -16,7 +16,6 @@ else
     exit 1
 fi
 
-
 # Test the SSH agent
 echo "-----> Testing SSH agent"
 ssh-add -l || echo "No keys are currently added to the SSH agent"
