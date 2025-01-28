@@ -3,18 +3,32 @@ set -eo pipefail
 
 echo "-----> Running pre-compile hook to start SSH agent and add key"
 
-# Start SSH agent
-echo "-----> Starting SSH agent"
-eval $(ssh-agent -s)
+# Ensure .ssh directory exists
+mkdir -p $HOME/.ssh
+chmod 700 $HOME/.ssh
 
-# Add the SSH private key
-if [ -f "$HOME/.ssh/id_rsa" ]; then
-    echo "-----> Adding private key to SSH agent"
-    ssh-add $HOME/.ssh/id_rsa
+# Write the SSH private key from the environment variable
+if [ -n "$GITHUB_SSH_PRIVATE_KEY" ]; then
+    echo "-----> Writing private key to $HOME/.ssh/id_rsa"
+    echo "$GITHUB_SSH_PRIVATE_KEY" | tr -d '\r' > $HOME/.ssh/id_rsa
+    chmod 600 $HOME/.ssh/id_rsa
 else
-    echo "Error: SSH private key not found at $HOME/.ssh/id_rsa"
+    echo "Error: GITHUB_SSH_PRIVATE_KEY environment variable is not set!"
     exit 1
 fi
+
+# Configure SSH
+cat <<EOF > $HOME/.ssh/config
+Host github.com
+    IdentityFile $HOME/.ssh/id_rsa
+    StrictHostKeyChecking no
+EOF
+chmod 600 $HOME/.ssh/config
+
+# Start SSH agent and add the key
+echo "-----> Starting SSH agent"
+eval $(ssh-agent -s)
+ssh-add $HOME/.ssh/id_rsa
 
 # Test the SSH agent
 echo "-----> Testing SSH agent"
