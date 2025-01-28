@@ -3,19 +3,23 @@ set -eo pipefail
 
 echo "-----> Running pre-compile hook to start SSH agent and add key"
 
-# Ensure .ssh directory exists
+# Make sure the SSH directory exists
 mkdir -p $HOME/.ssh
 chmod 700 $HOME/.ssh
 
-# Write the SSH private key from the environment variable
-if [ -n "$GITHUB_SSH_PRIVATE_KEY" ]; then
-    echo "-----> Writing private key to $HOME/.ssh/id_rsa"
-    echo "$GITHUB_SSH_PRIVATE_KEY" | tr -d '\r' > $HOME/.ssh/id_rsa
-    chmod 600 $HOME/.ssh/id_rsa
-else
+# Load environment variables manually (Heroku does not provide them by default in buildpacks)
+echo "-----> Manually sourcing environment variables"
+source <(heroku config -s | grep GITHUB_SSH_PRIVATE_KEY)
+
+# Check if the key is available
+if [ -z "$GITHUB_SSH_PRIVATE_KEY" ]; then
     echo "Error: GITHUB_SSH_PRIVATE_KEY environment variable is not set!"
     exit 1
 fi
+
+# Write private key
+echo "$GITHUB_SSH_PRIVATE_KEY" > $HOME/.ssh/id_rsa
+chmod 600 $HOME/.ssh/id_rsa
 
 # Configure SSH
 cat <<EOF > $HOME/.ssh/config
@@ -26,12 +30,7 @@ EOF
 chmod 600 $HOME/.ssh/config
 
 # Start SSH agent and add the key
-echo "-----> Starting SSH agent"
 eval $(ssh-agent -s)
 ssh-add $HOME/.ssh/id_rsa
 
-# Test the SSH agent
-echo "-----> Testing SSH agent"
-ssh-add -l || echo "No keys are currently added to the SSH agent"
-
-echo "-----> Pre-compile SSH agent setup complete"
+echo "-----> SSH setup complete."
