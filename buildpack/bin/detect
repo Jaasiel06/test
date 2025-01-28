@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Detect script for the buildpack
+echo "Custom Buildpack: Pre-compile SSH Setup"
+exit 0
