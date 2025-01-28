@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+echo "-----> Running pre-compile hook to start SSH agent and add key"
+
+# Start SSH agent
+echo "-----> Starting SSH agent"
+eval $(ssh-agent -s)
+
+# Add the SSH private key
+if [ -f "$HOME/.ssh/id_rsa" ]; then
+    echo "-----> Adding private key to SSH agent"
+    ssh-add $HOME/.ssh/id_rsa
+else
+    echo "Error: SSH private key not found at $HOME/.ssh/id_rsa"
+    exit 1
+fi
+
+
+# Test the SSH agent
+echo "-----> Testing SSH agent"
+ssh-add -l || echo "No keys are currently added to the SSH agent"
+
+echo "-----> Pre-compile SSH agent setup complete"
